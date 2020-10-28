@@ -28,38 +28,19 @@ window.leechReorder = {};
         return Math.max(readingScore, meaningScore);
     }
 
-    function isLeech(item) {
-        return getLeechScore(item) >= 1;
-    }
-
     wkof.include('ItemData');
     let leech_lookup = {};
     var items_ready = wkof.ready('ItemData').then(function () {
         return wkof.ItemData.get_items("review_statistics").then(items => {
-            items.filter((val) => isLeech(val)).forEach(val => { leech_lookup[val.id] = getLeechScore(val) })
+            items.forEach(val => { leech_lookup[val.id] = getLeechScore(val) })
         });
     });
 
     $('div[id*="loading"]:visible').on('hide', items_ready.then(function () {
         // Combine all reviews into a single sorted list.
-        let compareLeechScores = (a, b) => {
-            let undefinedA = !(a.id in leech_lookup)
-            let undefinedB = !(b.id in leech_lookup)
-            if (undefinedA && undefinedB) {
-                return 0;
-            }
-            if (undefinedA) {
-                return -1;
-            }
-            if (undefinedB) {
-                return 1;
-            }
-            return leech_lookup[a.id] - leech_lookup[b.id];
-        }
-
         let queue = $.jStorage.get('reviewQueue')
             .concat($.jStorage.get('activeQueue'))
-            .sort(compareLeechScores)
+            .sort((a, b) => leech_lookup[a.id] - leech_lookup[b.id])
 
         // Put last 10 review items into active queue, highest leech score first.
         let active = queue.splice(queue.length - 10, 10).reverse()
